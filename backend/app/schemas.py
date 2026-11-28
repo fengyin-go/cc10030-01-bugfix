@@ -19,6 +19,9 @@ class ActionResult(BaseModel):
     ok: bool
     message: str
     entry: dict[str, Any] | None = None
+    # 登记成功时回传的流程凭据，前端可据此直接挂货，不必再查列表。
+    receipt_no: str | None = None
+    voyage_id: int | str | None = None
 
 
 class EntryPayload(BaseModel):

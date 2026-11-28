@@ -72,6 +72,24 @@ def voyage_exists(voyage_id: str | int) -> tuple[bool, str]:
     return True, ""
 
 
+ACTIVE_ATTACHMENT = "已挂接"
+PENDING_ATTACHMENTS = {"未挂接", "待挂接", "舱位待确认"}
+
+
+def cargo_occupies_capacity(cargo_row: dict[str, Any]) -> bool:
+    """判断一笔货物是否已经占用航次的装载能力。
+
+    只有真正挂接到有效航次上的货物才占用；落在「舱位待确认」/「待挂接」的
+    原货票在挂接前不占用已装载件数。没有挂接字段的历史记录沿用旧口径。
+    """
+    attachment = str(cargo_row.get("挂接状态", "") or "").strip()
+    if not attachment:
+        return str(cargo_row.get("status", "")) != "已卸货"
+    if attachment in PENDING_ATTACHMENTS:
+        return False
+    return attachment == ACTIVE_ATTACHMENT and cargo_row.get("status") != "已卸货"
+
+
 def check_cargo_tonnage(voyage_id: str | int, cargo_tonnage: float) -> tuple[bool, str]:
     """货物登记时校验航次上全部货物总吨位不超船舶载重吨。"""
     voyage = require_entity("voyage", voyage_id)
@@ -89,10 +107,10 @@ def check_cargo_tonnage(voyage_id: str | int, cargo_tonnage: float) -> tuple[boo
     except (ValueError, TypeError):
         dwt = 0
 
-    # 计算现有货物总吨位
+    # 计算现有货物总吨位：只统计已真正挂接的货物
     existing_tonnage = 0.0
     for cargo_row in store.rows("cargo"):
-        if str(cargo_row.get("装载航次", "")) == str(voyage_id) and cargo_row.get("status") != "已卸货":
+        if str(cargo_row.get("装载航次", "")) == str(voyage_id) and cargo_occupies_capacity(cargo_row):
             try:
                 existing_tonnage += float(str(cargo_row.get("总吨数", 0)))
             except (ValueError, TypeError):

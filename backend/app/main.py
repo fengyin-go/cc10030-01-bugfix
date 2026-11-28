@@ -35,6 +35,7 @@ def overview() -> dict[str, object]:
 
 
 # 资源路由含 /api/{module}，必须放在 health / overview 之后注册，
-# 否则固定路径会被动态路径抢先匹配。
+# 否则固定路径会被动态路径抢先匹配。流程路由（/api/voyage-flow）虽然不是
+# /api/{module} 形态，但同样放在最后，保持注册顺序稳定。
 for module in ROUTERS:
     app.include_router(module.router)

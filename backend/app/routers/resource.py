@@ -85,10 +85,18 @@ def get_entry(module: str, entry_id: int) -> dict[str, Any]:
 @router.post("/{module}", response_model=ActionResult)
 def create_entry(module: str, payload: EntryPayload) -> ActionResult:
     service = require_service(module)
-    entry, missing = service.create_entry(payload.values)
-    if missing:
-        return ActionResult(ok=False, message=f"缺少必填字段：{'、'.join(missing)}")
-    return ActionResult(ok=True, message=f"{service.ENTITY}已登记", entry=entry)
+    entry, problem = service.create_entry(payload.values)
+    if entry is None:
+        if isinstance(problem, list):
+            return ActionResult(ok=False, message=f"缺少必填字段：{'、'.join(problem)}")
+        return ActionResult(ok=False, message=str(problem) or f"{service.ENTITY}登记未通过")
+    note = str(entry.get("办理进度") or "").strip()
+    message = f"{service.ENTITY}已登记" + (f"：{note}" if note else "")
+    return ActionResult(
+        ok=True, message=message, entry=entry,
+        receipt_no=entry.get("回执编号"),
+        voyage_id=entry.get("id") if module == "voyage" else entry.get("装载航次") or None,
+    )
 
 
 @router.post("/{module}/{entry_id}/actions", response_model=ActionResult)

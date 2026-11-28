@@ -14,6 +14,9 @@ class Store:
         self._tables: dict[str, list[dict[str, Any]]] = {
             name: [dict(row) for row in rows] for name, rows in SEED_ROWS.items()
         }
+        # 流程凭据表（航次登记回执、航线更正、登记尝试）不参与业务模块统计，
+        # 避免「业务模块数」随内部流程记录漂移。
+        self._aux: dict[str, list[dict[str, Any]]] = {}
 
     def module_names(self) -> list[str]:
         return sorted(self._tables)
@@ -23,6 +26,15 @@ class Store:
 
     def find(self, module: str, entry_id: int) -> dict[str, Any] | None:
         for row in self.rows(module):
+            if int(row.get("id", 0)) == entry_id:
+                return row
+        return None
+
+    def aux_rows(self, name: str) -> list[dict[str, Any]]:
+        return self._aux.setdefault(name, [])
+
+    def aux_find(self, name: str, entry_id: int) -> dict[str, Any] | None:
+        for row in self.aux_rows(name):
             if int(row.get("id", 0)) == entry_id:
                 return row
         return None

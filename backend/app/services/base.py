@@ -13,6 +13,8 @@ class BaseModuleService:
     REQUIRED_FIELDS: list[str] = []
     STATUS_ORDER: list[str] = []
     ACTION_RULES: dict[str, str] = {}
+    # 动作允许的当前状态；不配置时沿用原有行为（任何状态都可执行）。
+    ACTION_FROM: dict[str, list[str]] = {}
     NEGATIVE_ACTIONS: list[str] = []
 
     def list_entries(
